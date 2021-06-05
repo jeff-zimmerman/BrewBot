@@ -1,0 +1,31 @@
+from Robot import *
+from Part import *
+from FreeCAD import *
+import FreeCAD as App
+import tempfile
+import numpy as np
+
+pos = App.getDocument("first_sim").getObject("Robot").Tcp
+# move the robot
+pos.move(App.Vector(-10,0,0))
+App.getDocument("first_sim").getObject("Robot").Tcp = pos
+
+# create an empty Trajectory object in the active document
+App.activeDocument().addObject("Robot::TrajectoryObject","Trajectory")
+# get the Trajectory
+t = App.activeDocument().Trajectory.Trajectory
+# add the actual TCP position of the robot to the trajectory
+
+StartTcp = App.activeDocument().Robot.Tcp
+t.insertWaypoints(StartTcp)
+App.activeDocument().Trajectory.Trajectory = t
+print(App.activeDocument().Trajectory.Trajectory)
+
+# insert some more Waypoints and the start point at the end again:
+for i in range(10):
+  t.insertWaypoints(Waypoint(Placement(Vector(np.cos(0.1*np.pi*i)*200+500,1000,np.sin(0.1*np.pi*i)*200+500),Vector(0,0,1),i),"CIRC","Pt"))
+
+ # end point of the trajectory
+t.insertWaypoints(StartTcp)
+App.activeDocument().Trajectory.Trajectory = t
+print(App.activeDocument().Trajectory.Trajectory)
