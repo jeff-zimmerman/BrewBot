@@ -106,5 +106,3 @@ if __name__ == "__main__":
 	steppo2 = make_list('record.txt', 50, accel = False)
 	time.sleep(5)
 	move_all(steppo)
-
-	return(0)
