@@ -36,9 +36,6 @@ class connectArduino(QObject):
         iterator = util.Iterator(self.board)
         iterator.start()
         # sets up loop to talk to ard. Like what's in the void loop section of regular arduino ide
-        self.basepath = str(Path(__file__).parents[3])
-        self.record = open(self.basepath + '/RECORD/record_test.txt',
-                           'w+')  # opens file to record positions and times in
 
         self.V1 = self.board.get_pin('a:0:i')  # sets up pins for voltage from pot
         self.V2 = self.board.get_pin('a:1:i')
@@ -53,7 +50,6 @@ class connectArduino(QObject):
 
     def updatePos(self):
         while True:
-            print('\rRecording', end='')
             Voltage1 = self.V1.read()
             Voltage2 = self.V2.read()
             Voltage3 = self.V3.read()
@@ -67,23 +63,3 @@ class connectArduino(QObject):
                 self.update_pos.emit(pos)
             else:
                 self.update_pos.emit(pos)
-
-
-
-        # time_now = time.time()
-        # prev_time = time_now if 'time_interval' not in locals() else prev_time  # need to declare the variable start_time to have something to reference (I don't think you actually need this)										#This is kinda a dummy variable to have the program only record one location per button press
-        #
-        # if Parent.record_position_event.is_set():  # If button is pressed and hasn't been let up since the last loop
-        #     time_interval = (time_now - prev_time)
-        #     prev_time = time_now
-        #     string_time = str(f'{Voltage1 * 180}\t{Voltage2 * 180}\t{Voltage3 * 180}\t{time_interval}\n')
-        #     # record.write(string_time) writes data to file
-        #     print('\n' + string_time)  # restarts timer
-        #     Parent.record_position_button['text'] = f'Record Position {x}'
-        #     x += 1
-        #     Parent.record_position_event.clear()
-        #
-        # if Parent.stop_record_event.is_set():  # this is what sets the time for a double click to stop recording (0.2s)
-        #     record.close()  # closes file and exits program
-        #     Parent.stop_record_event.clear()
-        #     raise CloseRecord

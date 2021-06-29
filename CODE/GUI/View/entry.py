@@ -1,7 +1,8 @@
-import sys
+import sys, csv
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from time import sleep, time
+from pathlib import Path
 
 from CODE.GUI.record.arduinoControl import *
 
@@ -23,8 +24,13 @@ class EntryUI(QMainWindow):
         self._createTable()
 
     def _createMenu(self):
-        self.menu = self.menuBar().addMenu("&Menu")
-        self.menu.addAction('&Exit', self.close)
+        #Actions
+        self.openAction = QAction('&Open', self)
+
+        #Add actions to menu
+        self.fileMenu = self.menuBar().addMenu('&File')
+        self.fileMenu.addAction('&Exit', self.close)
+        self.fileMenu.addAction(self.openAction)
 
     def _createButtons(self):
         buttonsLayout = QGridLayout()
@@ -66,7 +72,9 @@ class entryCtrl(QObject):
 
     def __init__(self, parent=None):
         super(self.__class__, self).__init__(parent)
+
         self._view = parent
+        self.basepath = str(Path(__file__).parents[3])
         self.tableWidget = self._view.tableWidget
         self.buttons = self._view.buttons
         self._connectSignals()
@@ -76,6 +84,9 @@ class entryCtrl(QObject):
     def _connectSignals(self):
         self.buttons['Start Recording'].clicked.connect(self._recordStart)
         self.buttons['Record Position'].clicked.connect(self._recordPos)
+        self.buttons['Save'].clicked.connect(self._saveTable)
+        self._view.openAction.triggered.connect(self._openTable)
+
 
     def connectArduino(self) -> object:
 
@@ -86,7 +97,7 @@ class entryCtrl(QObject):
 
         self.connectThread.started.connect(self.connectWorker.initArduino)
         self.connectWorker.connect_status.connect(print)
-        self.connectWorker.update_pos.connect(self.displayPos)
+        self.connectWorker.update_pos.connect(self._displayPos)
 
         self.connectThread.start()
 
@@ -113,10 +124,51 @@ class entryCtrl(QObject):
         self.tableWidget.insertRow(self.tableWidget.rowCount())
         self.connectWorker.time_start = time.time()
 
-    def displayPos(self, values):
+    def _displayPos(self, values):
         '''display real time values of recordThread signals'''
         for cell, val in enumerate(values):
             self.tableWidget.setItem(self.tableWidget.rowCount() - 1, cell, QTableWidgetItem(str(val)))
+
+    def _saveTable(self):
+        if not hasattr(self, 'filename'):
+            self.filename = QInputDialog.getText(self._view,
+                                            'Save Routine',
+                                            'Routine Name:'
+                                            )[0]
+        # opens file to record positions and times in
+        with open(f'{self.basepath}/RECORD/{self.filename}.csv', mode='w+') as f:
+            writer = csv.writer(f)
+            for row in range(self.tableWidget.rowCount()):
+                rowdata = []
+                for column in range(self.tableWidget.columnCount()):
+                    item = self.tableWidget.item(row, column)
+                    if item is not None:
+                        rowdata.append(item.text())
+                    else:
+                        rowdata.append('')
+                writer.writerow(rowdata)
+            f.close()
+
+    def _openTable(self):
+
+        path = QFileDialog.getOpenFileName(parent=self._view,
+                                           caption='Open File',
+                                           directory=self.basepath,
+                                           filter='CSV(*.csv)')[0]
+
+        if path:
+            with open(path, 'rt') as stream:
+                self.tableWidget.setRowCount(0)
+                self.tableWidget.setColumnCount(0)
+                for rowdata in csv.reader(stream):
+                    row = self.tableWidget.rowCount()
+                    self.tableWidget.insertRow(row)
+                    self.tableWidget.setColumnCount(len(rowdata))
+                    for column, data in enumerate(rowdata):
+                        item = QTableWidgetItem(data)
+                        self.tableWidget.setItem(row, column, item)
+
+            self.filename = Path(path).stem
 
 
 if __name__ == '__main__':
